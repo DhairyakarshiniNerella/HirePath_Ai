@@ -70,7 +70,7 @@ A dedicated regex-based parser recognizes real-world phrasing ("Fresher", "0-2 y
 HirePath AI/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                 # Flask entrypoint / API route
+│   │   ├── main.py                 
 │   │   ├── agents/                 # The 6 specialized agents
 │   │   ├── tools/                  # Resume parser + job API clients
 │   │   ├── services/               # Normalization, dedup, matching, embeddings
