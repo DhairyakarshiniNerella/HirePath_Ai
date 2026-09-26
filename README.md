@@ -38,7 +38,7 @@ Every agent reads from and writes to one shared `WorkflowState` object. The **Su
 
 | Layer | Technology | Why |
 |---|---|---|
-| Frontend | HTML, CSS, Vanilla JavaScript | No framework overhead; `fetch()` talks directly to Flask |
+| Frontend | HTML, CSS | No framework overhead; `fetch()` talks directly to Flask |
 | Backend | Flask (Python) | Simple, well-understood REST API layer |
 | Agent Orchestration | LangGraph | Shared state graph, conditional routing between agents |
 | LLM Reasoning | LangChain + Groq (`openai/gpt-oss-20b`) | Free, fast inference for structured extraction and explanations |
