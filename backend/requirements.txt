@@ -11,3 +11,4 @@ langchain
 requests
 sentence-transformers
 langchain-huggingface
+gunicorn

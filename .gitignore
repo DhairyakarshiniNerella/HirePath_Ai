@@ -5,6 +5,9 @@
 venv/
 .venv/
 
+# Node dependencies (frontend test tooling)
+node_modules/
+
 # Python cache files
 __pycache__/
 *.pyc

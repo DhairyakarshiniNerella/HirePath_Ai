@@ -27,13 +27,21 @@ themeToggleButton.addEventListener("click", () => {
     }
 });
 
+// --- Backend API base URL ---
+// Locally (Vercel dev, or opening index.html directly) this points at your
+// local Flask server. In production, replace the placeholder below with
+// your deployed backend's URL (e.g. from Render/Railway/Fly.io).
+const API_BASE_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? "http://127.0.0.1:5000"
+    : "https://REPLACE-WITH-YOUR-BACKEND-URL.onrender.com";
+
 // --- Backend status pill (auto-checked on page load) ---
 const backendStatusDot = document.getElementById("backend-status-dot");
 const backendStatusText = document.getElementById("backend-status-text");
 
 async function checkBackendStatus() {
     try {
-        const response = await fetch("http://127.0.0.1:5000/api/health");
+        const response = await fetch(`${API_BASE_URL}/api/health`);
         if (!response.ok) throw new Error("Backend responded with an error");
         backendStatusDot.className = "status-dot status-online";
         backendStatusText.textContent = "Backend online";
@@ -330,7 +338,7 @@ analyzeButton.addEventListener("click", async () => {
     formData.append("resume", selectedFile);
 
     try {
-        const response = await fetch("http://127.0.0.1:5000/api/resume/upload", {
+        const response = await fetch(`${API_BASE_URL}/api/resume/upload`, {
             method: "POST",
             body: formData,
         });
