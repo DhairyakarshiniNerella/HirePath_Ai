@@ -1,22 +1,26 @@
 import numpy as np
-from langchain_huggingface import HuggingFaceEmbeddings
+from fastembed import TextEmbedding
 
 # Loaded once, on first use, then reused (loading the model takes a few seconds)
 _embedding_model = None
 
 
 def get_embedding_model():
-    """Loads the HuggingFace embedding model once and reuses it on every later call."""
+    """
+    Loads the all-MiniLM-L6-v2 embedding model once and reuses it on every later call.
+    fastembed runs the same model through ONNX instead of PyTorch, which keeps
+    memory low enough for small hosting instances (PyTorch alone needs 500MB+).
+    """
     global _embedding_model
     if _embedding_model is None:
-        _embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        _embedding_model = TextEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
     return _embedding_model
 
 
 def embed_text(text: str) -> list:
     """Converts a piece of text into a numeric vector (embedding)."""
     model = get_embedding_model()
-    return model.embed_query(text)
+    return next(iter(model.embed([text]))).tolist()
 
 
 def cosine_similarity(vector_a: list, vector_b: list) -> float:

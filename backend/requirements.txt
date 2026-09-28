@@ -9,6 +9,5 @@ langchain-groq
 langgraph
 langchain
 requests
-sentence-transformers
-langchain-huggingface
+fastembed
 gunicorn

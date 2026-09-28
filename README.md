@@ -25,7 +25,7 @@ Agent            |               |               |              |
     |      ┌──────┼──────┐        |         Deterministic         |
     |      ↓      ↓      ↓        |         Python scoring    LLM explains
     |   Adzuna Jooble Arbeitnow   LLM extracts     +          the results
-    |                          requirements    HuggingFace       (no score
+    |                          requirements    MiniLM (ONNX)     (no score
 Groq LLM                       from job text    embeddings      invention)
 extracts                       (skills, exp,   for semantic
 structured                     education...)    similarity
@@ -42,7 +42,7 @@ Every agent reads from and writes to one shared `WorkflowState` object. The **Su
 | Backend | Flask (Python) | Simple, well-understood REST API layer |
 | Agent Orchestration | LangGraph | Shared state graph, conditional routing between agents |
 | LLM Reasoning | LangChain + Groq (`openai/gpt-oss-20b`) | Free, fast inference for structured extraction and explanations |
-| Semantic Similarity | Hugging Face `sentence-transformers/all-MiniLM-L6-v2` | Free, local embeddings — no per-call cost |
+| Semantic Similarity | `sentence-transformers/all-MiniLM-L6-v2` via `fastembed` (ONNX) | Free, local embeddings — no per-call cost, low enough memory for small hosts |
 | Job Data | Adzuna API, Jooble API, Arbeitnow API | Three legitimate, documented, free job sources |
 | Resume Parsing | `pypdf`, `python-docx` | Extracts text from PDF/DOCX resumes |
 | Data Validation | Pydantic | Enforces structured, type-safe LLM output |
