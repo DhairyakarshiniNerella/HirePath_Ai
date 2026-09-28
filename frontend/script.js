@@ -33,7 +33,7 @@ themeToggleButton.addEventListener("click", () => {
 // your deployed backend's URL (e.g. from Render/Railway/Fly.io).
 const API_BASE_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
     ? "http://127.0.0.1:5000"
-    : "https://REPLACE-WITH-YOUR-BACKEND-URL.onrender.com";
+    : "https://hirepath-ai.onrender.com";
 
 // --- Backend status pill (auto-checked on page load) ---
 const backendStatusDot = document.getElementById("backend-status-dot");
