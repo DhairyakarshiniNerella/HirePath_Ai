@@ -44,6 +44,13 @@ def test_auth_error():
     assert "401" not in message
 
 
+def test_structured_output_parse_failure():
+    error = ValueError("Could not parse resume into a profile: Failed to parse response into CandidateProfile")
+    message = friendly_agent_error(error)
+    assert "reading some details from your resume" in message
+    assert "CandidateProfile" not in message
+
+
 def test_timeout_error():
     error = Exception("Request timed out after 30s")
     message = friendly_agent_error(error)

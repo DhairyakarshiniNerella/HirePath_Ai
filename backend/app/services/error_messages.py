@@ -27,6 +27,9 @@ def friendly_agent_error(error: Exception) -> str:
     if "401" in text or "invalid_api_key" in lower or "authentication" in lower:
         return "The AI service rejected our credentials - this is a setup issue, not something caused by your resume. Please contact the site owner."
 
+    if "could not parse" in lower or "parsing_error" in lower:
+        return "We had trouble reading some details from your resume clearly. Please try again - if it keeps happening, try a simpler resume format (avoid tables/columns)."
+
     if "timed out" in lower or "timeout" in lower:
         return "The AI service took too long to respond. Please try again."
 

@@ -14,13 +14,23 @@ from app.services.error_messages import friendly_agent_error
 MAX_JOBS_TO_ANALYZE = 15
 
 
+def _node_error(agent_label: str, e: Exception) -> dict:
+    """
+    Logs the raw, technical exception to the server console (visible in
+    Render's logs) so the real cause is always diagnosable, while the
+    frontend only ever receives the short, friendly translation.
+    """
+    print(f"[error] {agent_label}: {e}", flush=True)
+    return {"errors": [f"{agent_label} failed: {friendly_agent_error(e)}"]}
+
+
 def resume_analyzer_node(state: WorkflowState) -> dict:
     """Graph node wrapper around the Resume Analyzer Agent."""
     try:
         profile = analyze_resume(state["resume_text"])
         return {"candidate_profile": profile}
     except Exception as e:
-        return {"errors": [f"Resume Analyzer Agent failed: {friendly_agent_error(e)}"]}
+        return _node_error("Resume Analyzer Agent", e)
 
 
 def job_search_node(state: WorkflowState) -> dict:
@@ -29,7 +39,7 @@ def job_search_node(state: WorkflowState) -> dict:
         result = search_jobs_for_candidate(state["candidate_profile"])
         return {"search_queries": result["search_queries"], "jobs": result["jobs"]}
     except Exception as e:
-        return {"errors": [f"Job Search Agent failed: {friendly_agent_error(e)}"]}
+        return _node_error("Job Search Agent", e)
 
 
 def job_analysis_node(state: WorkflowState) -> dict:
@@ -45,7 +55,7 @@ def job_analysis_node(state: WorkflowState) -> dict:
         analyzed = analyze_jobs(jobs_to_analyze)
         return {"analyzed_jobs": analyzed}
     except Exception as e:
-        return {"errors": [f"Job Analysis Agent failed: {friendly_agent_error(e)}"]}
+        return _node_error("Job Analysis Agent", e)
 
 
 def matching_node(state: WorkflowState) -> dict:
@@ -54,7 +64,7 @@ def matching_node(state: WorkflowState) -> dict:
         ranked = rank_jobs_for_candidate(state["candidate_profile"], state["analyzed_jobs"])
         return {"ranked_jobs": ranked}
     except Exception as e:
-        return {"errors": [f"Matching Agent failed: {friendly_agent_error(e)}"]}
+        return _node_error("Matching Agent", e)
 
 
 def recommendation_node(state: WorkflowState) -> dict:
@@ -63,7 +73,7 @@ def recommendation_node(state: WorkflowState) -> dict:
         recommendations = generate_recommendations(state["candidate_profile"], state["ranked_jobs"])
         return {"recommendations": recommendations}
     except Exception as e:
-        return {"errors": [f"Recommendation Agent failed: {friendly_agent_error(e)}"]}
+        return _node_error("Recommendation Agent", e)
 
 
 def route_from_supervisor(state: WorkflowState) -> str:
