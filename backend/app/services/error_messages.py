@@ -11,7 +11,14 @@ def friendly_agent_error(error: Exception) -> str:
     text = str(error)
     lower = text.lower()
 
-    if "rate_limit_exceeded" in lower or "429" in text:
+    # Bare "429"/"401" substring checks are too easy to false-positive on
+    # (a token count like "4019" or an org/request ID contains "401"/"429"
+    # without meaning a 429/401 HTTP status at all) - \b anchors them to
+    # the actual standalone number, not a digit sequence they're embedded in.
+    has_429 = bool(re.search(r"\b429\b", text))
+    has_401 = bool(re.search(r"\b401\b", text))
+
+    if "rate_limit_exceeded" in lower or has_429:
         scope = "today's" if ("tokens per day" in lower or "(tpd)" in lower) else "the current"
 
         wait_match = re.search(r"try again in (?:(\d+)m)?([\d.]+)s", text)
@@ -24,7 +31,7 @@ def friendly_agent_error(error: Exception) -> str:
 
         return f"We've hit {scope} usage limit for the AI service. Please try again shortly."
 
-    if "401" in text or "invalid_api_key" in lower or "authentication" in lower:
+    if has_401 or "invalid_api_key" in lower or "unauthorized" in lower or "authentication" in lower:
         return "The AI service rejected our credentials - this is a setup issue, not something caused by your resume. Please contact the site owner."
 
     if "could not parse" in lower or "parsing_error" in lower:

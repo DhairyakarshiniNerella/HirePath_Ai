@@ -44,6 +44,27 @@ def test_auth_error():
     assert "401" not in message
 
 
+def test_token_count_containing_401_is_not_mistaken_for_auth_error():
+    # Regression: "401" used to be a bare substring check, so a token count
+    # like 14019 (contains "401") was wrongly classified as an auth failure
+    # even with valid credentials.
+    error = Exception("Requested 14019 tokens exceeds model's context window of 8192")
+    message = friendly_agent_error(error)
+    assert "credentials" not in message
+
+
+def test_token_count_containing_429_is_not_mistaken_for_rate_limit():
+    error = Exception("Batch processed 4291 tokens successfully")
+    message = friendly_agent_error(error)
+    assert "usage limit" not in message
+
+
+def test_standalone_401_is_still_detected_as_auth_error():
+    error = Exception("HTTP 401 returned by upstream service")
+    message = friendly_agent_error(error)
+    assert "credentials" in message
+
+
 def test_structured_output_parse_failure():
     error = ValueError("Could not parse resume into a profile: Failed to parse response into CandidateProfile")
     message = friendly_agent_error(error)
