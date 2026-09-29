@@ -7,6 +7,7 @@ from app.agents.job_analysis_agent import analyze_jobs
 from app.agents.matching_agent import rank_jobs_for_candidate
 from app.agents.recommendation_agent import generate_recommendations
 from app.services.job_normalizer import normalize_jobs, remove_duplicate_jobs, select_balanced_jobs
+from app.services.error_messages import friendly_agent_error
 
 # Analyzing every job with the LLM would mean hundreds of Groq calls per
 # resume upload. We cap it to a manageable number of unique jobs.
@@ -19,7 +20,7 @@ def resume_analyzer_node(state: WorkflowState) -> dict:
         profile = analyze_resume(state["resume_text"])
         return {"candidate_profile": profile}
     except Exception as e:
-        return {"errors": [f"Resume Analyzer Agent failed: {str(e)}"]}
+        return {"errors": [f"Resume Analyzer Agent failed: {friendly_agent_error(e)}"]}
 
 
 def job_search_node(state: WorkflowState) -> dict:
@@ -28,7 +29,7 @@ def job_search_node(state: WorkflowState) -> dict:
         result = search_jobs_for_candidate(state["candidate_profile"])
         return {"search_queries": result["search_queries"], "jobs": result["jobs"]}
     except Exception as e:
-        return {"errors": [f"Job Search Agent failed: {str(e)}"]}
+        return {"errors": [f"Job Search Agent failed: {friendly_agent_error(e)}"]}
 
 
 def job_analysis_node(state: WorkflowState) -> dict:
@@ -44,7 +45,7 @@ def job_analysis_node(state: WorkflowState) -> dict:
         analyzed = analyze_jobs(jobs_to_analyze)
         return {"analyzed_jobs": analyzed}
     except Exception as e:
-        return {"errors": [f"Job Analysis Agent failed: {str(e)}"]}
+        return {"errors": [f"Job Analysis Agent failed: {friendly_agent_error(e)}"]}
 
 
 def matching_node(state: WorkflowState) -> dict:
@@ -53,7 +54,7 @@ def matching_node(state: WorkflowState) -> dict:
         ranked = rank_jobs_for_candidate(state["candidate_profile"], state["analyzed_jobs"])
         return {"ranked_jobs": ranked}
     except Exception as e:
-        return {"errors": [f"Matching Agent failed: {str(e)}"]}
+        return {"errors": [f"Matching Agent failed: {friendly_agent_error(e)}"]}
 
 
 def recommendation_node(state: WorkflowState) -> dict:
@@ -62,7 +63,7 @@ def recommendation_node(state: WorkflowState) -> dict:
         recommendations = generate_recommendations(state["candidate_profile"], state["ranked_jobs"])
         return {"recommendations": recommendations}
     except Exception as e:
-        return {"errors": [f"Recommendation Agent failed: {str(e)}"]}
+        return {"errors": [f"Recommendation Agent failed: {friendly_agent_error(e)}"]}
 
 
 def route_from_supervisor(state: WorkflowState) -> str:
