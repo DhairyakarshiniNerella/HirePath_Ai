@@ -5,6 +5,7 @@ from app.services.job_normalizer import (
     normalize_job,
     normalize_jobs,
     remove_duplicate_jobs,
+    select_balanced_jobs,
 )
 
 
@@ -154,3 +155,49 @@ def test_remove_duplicate_jobs_missing_source_id_not_falsely_matched():
 
 def test_remove_duplicate_jobs_empty_list():
     assert remove_duplicate_jobs([]) == []
+
+
+def _job(source, n):
+    return {"source": source, "title": f"{source} job {n}"}
+
+
+def test_select_balanced_jobs_round_robins_across_sources():
+    jobs = (
+        [_job("Adzuna", i) for i in range(10)]
+        + [_job("Jooble", i) for i in range(10)]
+        + [_job("Arbeitnow", i) for i in range(10)]
+    )
+    result = select_balanced_jobs(jobs, limit=6)
+    sources = [job["source"] for job in result]
+    assert sources == ["Adzuna", "Jooble", "Arbeitnow", "Adzuna", "Jooble", "Arbeitnow"]
+
+
+def test_select_balanced_jobs_one_source_cannot_crowd_out_others():
+    # Adzuna alone has more than the limit; Jooble/Arbeitnow have just one each.
+    # A plain positional slice would return only Adzuna jobs - this must not.
+    jobs = [_job("Adzuna", i) for i in range(20)] + [_job("Jooble", 0)] + [_job("Arbeitnow", 0)]
+    result = select_balanced_jobs(jobs, limit=5)
+    sources = {job["source"] for job in result}
+    assert sources == {"Adzuna", "Jooble", "Arbeitnow"}
+
+
+def test_select_balanced_jobs_respects_limit():
+    jobs = [_job("Adzuna", i) for i in range(50)]
+    result = select_balanced_jobs(jobs, limit=15)
+    assert len(result) == 15
+
+
+def test_select_balanced_jobs_fewer_jobs_than_limit_returns_all():
+    jobs = [_job("Adzuna", 0), _job("Jooble", 0)]
+    result = select_balanced_jobs(jobs, limit=15)
+    assert len(result) == 2
+
+
+def test_select_balanced_jobs_empty_list():
+    assert select_balanced_jobs([], limit=15) == []
+
+
+def test_select_balanced_jobs_missing_source_field_still_works():
+    jobs = [{"title": "no source"} for _ in range(3)]
+    result = select_balanced_jobs(jobs, limit=2)
+    assert len(result) == 2

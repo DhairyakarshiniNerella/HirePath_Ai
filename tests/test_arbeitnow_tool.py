@@ -88,6 +88,26 @@ def test_missing_data_key_defaults_to_empty_list(monkeypatch):
     assert result["jobs"] == []
 
 
+def test_multi_word_query_matches_on_individual_words(monkeypatch):
+    # A real posting rarely contains the whole generated phrase verbatim -
+    # "Machine Learning Engineer" should still match "Senior ML Engineer"
+    # because "engineer" is a shared word, even though the full phrase isn't a substring.
+    jobs = [{"title": "Senior ML Engineer", "tags": []}, {"title": "Sales Associate", "tags": []}]
+    monkeypatch.setattr(arbeitnow_tool.requests, "get", lambda *a, **k: FakeResponse(200, {"data": jobs}))
+    result = arbeitnow_tool.search_arbeitnow_jobs("Machine Learning Engineer")
+    titles = [job["title"] for job in result["jobs"]]
+    assert "Senior ML Engineer" in titles
+    assert "Sales Associate" not in titles
+
+
+def test_query_short_words_only_returns_all_jobs_unfiltered(monkeypatch):
+    # Every word is <=2 chars, so there's nothing meaningful to filter on -
+    # falls back to returning the full unfiltered list instead of an empty one.
+    monkeypatch.setattr(arbeitnow_tool.requests, "get", lambda *a, **k: FakeResponse(200, {"data": SAMPLE_JOBS}))
+    result = arbeitnow_tool.search_arbeitnow_jobs("go")
+    assert len(result["jobs"]) == 3
+
+
 def test_job_with_no_tags_field_does_not_crash_on_query(monkeypatch):
     monkeypatch.setattr(
         arbeitnow_tool.requests, "get",

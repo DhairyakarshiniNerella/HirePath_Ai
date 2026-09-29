@@ -6,7 +6,7 @@ from app.agents.job_search_agent import search_jobs_for_candidate
 from app.agents.job_analysis_agent import analyze_jobs
 from app.agents.matching_agent import rank_jobs_for_candidate
 from app.agents.recommendation_agent import generate_recommendations
-from app.services.job_normalizer import normalize_jobs, remove_duplicate_jobs
+from app.services.job_normalizer import normalize_jobs, remove_duplicate_jobs, select_balanced_jobs
 
 # Analyzing every job with the LLM would mean hundreds of Groq calls per
 # resume upload. We cap it to a manageable number of unique jobs.
@@ -40,7 +40,7 @@ def job_analysis_node(state: WorkflowState) -> dict:
     try:
         normalized = normalize_jobs(state["jobs"])
         unique_jobs = remove_duplicate_jobs(normalized)
-        jobs_to_analyze = unique_jobs[:MAX_JOBS_TO_ANALYZE]
+        jobs_to_analyze = select_balanced_jobs(unique_jobs, MAX_JOBS_TO_ANALYZE)
         analyzed = analyze_jobs(jobs_to_analyze)
         return {"analyzed_jobs": analyzed}
     except Exception as e:

@@ -115,3 +115,32 @@ def remove_duplicate_jobs(jobs: List[dict]) -> List[dict]:
         unique_jobs.append(job)
 
     return unique_jobs
+
+
+def select_balanced_jobs(jobs: List[dict], limit: int) -> List[dict]:
+    """
+    Picks up to `limit` jobs, round-robining across sources instead of
+    taking a straight positional slice. Adzuna is always queried first for
+    every search term, so a plain jobs[:limit] slice can end up entirely
+    Adzuna even when Jooble/Arbeitnow also returned relevant results -
+    this guarantees every source gets a turn before any source gets a second pick.
+    """
+    jobs_by_source: dict = {}
+    source_order = []
+
+    for job in jobs:
+        source = job.get("source", "Unknown")
+        if source not in jobs_by_source:
+            jobs_by_source[source] = []
+            source_order.append(source)
+        jobs_by_source[source].append(job)
+
+    selected = []
+    round_index = 0
+    while len(selected) < limit and any(jobs_by_source[s] for s in source_order):
+        source = source_order[round_index % len(source_order)]
+        if jobs_by_source[source]:
+            selected.append(jobs_by_source[source].pop(0))
+        round_index += 1
+
+    return selected

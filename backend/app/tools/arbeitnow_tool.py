@@ -23,14 +23,22 @@ def search_arbeitnow_jobs(query: str = "") -> dict:
         data = response.json()
         all_jobs = data.get("data", [])
 
-        # Arbeitnow has no search parameter, so we filter locally by
-        # checking if the query words appear in the job title or tags
-        if query:
-            query_lower = query.lower()
+        # Arbeitnow has no search parameter, so we filter locally by checking
+        # if any individual word from the query (e.g. "Machine" or "Engineer"
+        # from "Machine Learning Engineer") appears in the job title or tags.
+        # Matching the whole phrase as one substring was too strict - "Machine
+        # Learning Engineer" would never match a real posting titled
+        # "Senior ML Engineer", so it silently returned zero jobs most of the time.
+        query_words = [w for w in query.lower().split() if len(w) > 2]
+
+        if query_words:
             filtered_jobs = [
                 job for job in all_jobs
-                if query_lower in job.get("title", "").lower()
-                or any(query_lower in tag.lower() for tag in job.get("tags", []))
+                if any(
+                    word in job.get("title", "").lower()
+                    or any(word in tag.lower() for tag in job.get("tags", []))
+                    for word in query_words
+                )
             ]
         else:
             filtered_jobs = all_jobs
