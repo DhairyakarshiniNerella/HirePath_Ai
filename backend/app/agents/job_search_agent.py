@@ -1,16 +1,14 @@
 from typing import List
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
 from app.models.profile import CandidateProfile
 from app.tools.adzuna_tool import search_adzuna_jobs
 from app.tools.jooble_tool import search_jooble_jobs
 from app.tools.arbeitnow_tool import search_arbeitnow_jobs
 from app.services.token_tracker import log_usage
+from app.services.groq_client import build_structured_llm
 
 load_dotenv()
-
-llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0)
 
 
 class SearchQueries(BaseModel):
@@ -20,7 +18,8 @@ class SearchQueries(BaseModel):
     )
 
 
-structured_llm = llm.with_structured_output(SearchQueries, include_raw=True)
+# Automatically falls back to GROQ_API_KEY_2 if the primary key's quota is exhausted.
+structured_llm = build_structured_llm(SearchQueries, temperature=0)
 
 QUERY_PROMPT = """You are a job search expert.
 Based on the candidate's skills, technologies, and target roles, generate 3 to 5

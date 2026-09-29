@@ -100,6 +100,9 @@ pip install -r requirements.txt
 # 2. Add your API keys
 # Create backend/.env with:
 #   GROQ_API_KEY=...
+#   GROQ_API_KEY_2=...   (optional - a second free Groq key, used as an
+#                          automatic fallback once GROQ_API_KEY's daily
+#                          quota is exhausted)
 #   ADZUNA_APP_ID=...
 #   ADZUNA_APP_KEY=...
 #   JOOBLE_API_KEY=...
@@ -113,7 +116,7 @@ Then open `frontend/index.html` directly in your browser.
 
 ## Known Limitations
 
-- Groq's free tier has an 8000 tokens/minute rate limit, which can be hit during heavy testing (the app surfaces this as a clear error rather than crashing).
+- Groq's free tier caps usage at 8000 tokens/minute and 200,000 tokens/day, either of which can be hit during heavy testing. The app surfaces this as a clear, friendly error (with an estimated wait time) rather than crashing, and can optionally fall back to a second Groq key (`GROQ_API_KEY_2`) with its own separate quota if one is configured.
 - Job analysis is capped to 15 unique jobs per search to control LLM call volume.
 - Agent progress in the UI is a simulated visual reveal, not a true real-time stream (no WebSockets/SSE yet — see Future Improvements).
 

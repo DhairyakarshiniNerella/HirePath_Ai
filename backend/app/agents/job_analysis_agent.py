@@ -1,12 +1,10 @@
 from typing import List
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
 from app.services.token_tracker import log_usage
+from app.services.groq_client import build_structured_llm
 
 load_dotenv()
-
-llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0)
 
 
 class JobRequirements(BaseModel):
@@ -36,7 +34,8 @@ class JobRequirements(BaseModel):
     )
 
 
-structured_llm = llm.with_structured_output(JobRequirements, include_raw=True)
+# Automatically falls back to GROQ_API_KEY_2 if the primary key's quota is exhausted.
+structured_llm = build_structured_llm(JobRequirements, temperature=0)
 
 ANALYSIS_PROMPT = """You are a job description analysis expert.
 Read the job posting below and extract its real requirements.

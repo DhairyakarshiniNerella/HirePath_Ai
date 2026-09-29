@@ -1,20 +1,18 @@
 from datetime import date
 
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
 from app.models.profile import CandidateProfile
 from app.services.token_tracker import log_usage
+from app.services.groq_client import build_structured_llm
 
-# Load GROQ_API_KEY from the .env file
+# Load GROQ_API_KEY (and optional GROQ_API_KEY_2) from the .env file
 load_dotenv()
 
-# The LLM we use for resume analysis
-llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0)
-
-# This makes the LLM return data matching our CandidateProfile shape exactly.
+# Structured-output client for resume analysis, bound to CandidateProfile.
 # include_raw=True also gives us the raw AIMessage (with token usage) alongside
 # the parsed object, so we can track how many tokens this call actually cost.
-structured_llm = llm.with_structured_output(CandidateProfile, include_raw=True)
+# Automatically falls back to GROQ_API_KEY_2 if the primary key's quota is exhausted.
+structured_llm = build_structured_llm(CandidateProfile, temperature=0)
 
 # Instructions given to the LLM every time we analyze a resume
 # {today} is filled in at call time so "Present"/"Current" entries resolve
