@@ -54,6 +54,18 @@ Career Level: {candidate_profile.career_level}
     return result["parsed"].queries
 
 
+def _log_source_result(source: str, query: str, result: dict) -> None:
+    """
+    Prints one line per source per query so job-source failures (bad key,
+    rate limit, unexpected response shape) are visible in server logs
+    instead of silently vanishing into an empty list.
+    """
+    if result["success"]:
+        print(f"[job_search] {source} '{query}': {len(result['jobs'])} job(s)", flush=True)
+    else:
+        print(f"[job_search] {source} '{query}' FAILED: {result.get('error', 'unknown error')}", flush=True)
+
+
 def search_all_sources(query: str, location: str = "") -> List[dict]:
     """
     Calls all three job APIs for one search query and combines the results.
@@ -62,18 +74,21 @@ def search_all_sources(query: str, location: str = "") -> List[dict]:
     all_jobs = []
 
     adzuna_result = search_adzuna_jobs(query, location=location)
+    _log_source_result("adzuna", query, adzuna_result)
     if adzuna_result["success"]:
         for job in adzuna_result["jobs"]:
             job["_source"] = "adzuna"
             all_jobs.append(job)
 
     jooble_result = search_jooble_jobs(query, location=location)
+    _log_source_result("jooble", query, jooble_result)
     if jooble_result["success"]:
         for job in jooble_result["jobs"]:
             job["_source"] = "jooble"
             all_jobs.append(job)
 
     arbeitnow_result = search_arbeitnow_jobs(query)
+    _log_source_result("arbeitnow", query, arbeitnow_result)
     if arbeitnow_result["success"]:
         for job in arbeitnow_result["jobs"]:
             job["_source"] = "arbeitnow"
