@@ -3,7 +3,7 @@ from app.agents import matching_agent
 
 
 def test_rank_jobs_sorts_best_match_first(monkeypatch):
-    scores = {"Job A": 40, "Job B": 90, "Job C": 65}
+    scores = {"Job A": 55, "Job B": 90, "Job C": 65}
 
     def fake_calculate_match_score(candidate_profile, job):
         return {"match_score": scores[job["title"]]}
@@ -14,6 +14,27 @@ def test_rank_jobs_sorts_best_match_first(monkeypatch):
     ranked = rank_jobs_for_candidate(candidate_profile=None, analyzed_jobs=jobs)
 
     assert [job["title"] for job in ranked] == ["Job B", "Job C", "Job A"]
+
+
+def test_rank_jobs_filters_out_jobs_below_50_percent(monkeypatch):
+    scores = {"Job A": 40, "Job B": 90, "Job C": 49}
+
+    def fake_calculate_match_score(candidate_profile, job):
+        return {"match_score": scores[job["title"]]}
+
+    monkeypatch.setattr(matching_agent, "calculate_match_score", fake_calculate_match_score)
+
+    jobs = [{"title": "Job A"}, {"title": "Job B"}, {"title": "Job C"}]
+    ranked = rank_jobs_for_candidate(candidate_profile=None, analyzed_jobs=jobs)
+
+    assert [job["title"] for job in ranked] == ["Job B"]
+
+
+def test_rank_jobs_includes_jobs_at_exactly_50_percent(monkeypatch):
+    monkeypatch.setattr(matching_agent, "calculate_match_score", lambda *a, **k: {"match_score": 50})
+    jobs = [{"title": "Job A"}]
+    ranked = rank_jobs_for_candidate(candidate_profile=None, analyzed_jobs=jobs)
+    assert [job["title"] for job in ranked] == ["Job A"]
 
 
 def test_rank_jobs_merges_score_fields_into_job_dict(monkeypatch):
