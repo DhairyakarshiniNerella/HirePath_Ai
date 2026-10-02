@@ -9,11 +9,19 @@ class ProjectEntry(BaseModel):
     instead of guessing where it ends inside a paragraph of text.
     """
 
-    name: str = Field(description="Short project title, e.g. 'HirePath AI' or 'Resume Parser Tool'")
+    name: str = Field(description="Project title copied exactly as written in the resume")
     description: str = Field(
         default="",
-        description="1-2 sentence description of what the project does or did"
+        description="Project description copied verbatim from the resume"
     )
+
+
+class EmploymentPeriod(BaseModel):
+    """One FULL-TIME job's dates. Used to compute experience deterministically."""
+
+    role: str = Field(default="", description="Job title exactly as written, e.g. 'Programmer/Analyst - II'")
+    start: str = Field(description="Start month as YYYY-MM, e.g. '2024-06'")
+    end: str = Field(default="", description="End month as YYYY-MM, or empty if the role is current (Present)")
 
 
 class CandidateProfile(BaseModel):
@@ -50,9 +58,14 @@ class CandidateProfile(BaseModel):
         description="Work experience entries (role, company, duration, responsibilities)"
     )
 
+    full_time_periods: List[EmploymentPeriod] = Field(
+        default_factory=list,
+        description="Dates of each FULL-TIME job only (exclude internships)"
+    )
+
     total_experience_years: float = Field(
         default=0.0,
-        description="Total years of professional experience. 0 for freshers."
+        description="Total years of FULL-TIME experience only (no internships, no employment gaps). 0 for freshers."
     )
 
     job_titles: List[str] = Field(
