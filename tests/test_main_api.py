@@ -3,6 +3,10 @@ import pytest
 from app import main as main_module
 
 
+# Long enough to clear the minimum-words check that guards the LLM call
+REALISTIC_TEXT = "Jane Doe Software Engineer " + "built backend services in Python and SQL " * 5
+
+
 @pytest.fixture
 def client():
     main_module.app.config["TESTING"] = True
@@ -49,7 +53,7 @@ def test_upload_extraction_failure_returns_400(client, monkeypatch):
 def test_upload_workflow_exception_returns_500(client, monkeypatch):
     monkeypatch.setattr(
         main_module, "extract_resume_text",
-        lambda path: {"success": True, "text": "resume text"},
+        lambda path: {"success": True, "text": REALISTIC_TEXT},
     )
 
     def boom(initial_state, config=None):
@@ -65,7 +69,7 @@ def test_upload_workflow_exception_returns_500(client, monkeypatch):
 def test_upload_workflow_reports_agent_errors_returns_502(client, monkeypatch):
     monkeypatch.setattr(
         main_module, "extract_resume_text",
-        lambda path: {"success": True, "text": "resume text"},
+        lambda path: {"success": True, "text": REALISTIC_TEXT},
     )
     monkeypatch.setattr(
         main_module.workflow, "invoke",
@@ -80,7 +84,7 @@ def test_upload_workflow_reports_agent_errors_returns_502(client, monkeypatch):
 def test_upload_workflow_missing_profile_returns_500(client, monkeypatch):
     monkeypatch.setattr(
         main_module, "extract_resume_text",
-        lambda path: {"success": True, "text": "resume text"},
+        lambda path: {"success": True, "text": REALISTIC_TEXT},
     )
     monkeypatch.setattr(
         main_module.workflow, "invoke",
@@ -97,7 +101,7 @@ def test_upload_success_returns_full_payload(client, monkeypatch):
 
     monkeypatch.setattr(
         main_module, "extract_resume_text",
-        lambda path: {"success": True, "text": "resume text"},
+        lambda path: {"success": True, "text": REALISTIC_TEXT},
     )
     fake_profile = CandidateProfile(name="Jane Doe", skills=["Python"])
     monkeypatch.setattr(
@@ -134,3 +138,17 @@ def test_is_allowed_file_rejects_other_extensions():
 
 def test_is_allowed_file_rejects_no_extension():
     assert main_module.is_allowed_file("resume") is False
+
+
+@pytest.mark.parametrize("text", ["hello", "resume text", "word " * 19])
+def test_upload_rejects_too_little_text_without_calling_the_llm(client, monkeypatch, text):
+    monkeypatch.setattr(main_module, "extract_resume_text", lambda path: {"success": True, "text": text})
+
+    def must_not_run(initial_state, config=None):
+        raise AssertionError("LLM workflow should not run for near-empty text")
+
+    monkeypatch.setattr(main_module.workflow, "invoke", must_not_run)
+    data = {"resume": (io.BytesIO(b"content"), "resume.pdf")}
+    response = client.post("/api/resume/upload", data=data, content_type="multipart/form-data")
+    assert response.status_code == 400
+    assert "very little readable text" in response.get_json()["error"]

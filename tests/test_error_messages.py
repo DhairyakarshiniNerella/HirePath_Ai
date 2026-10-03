@@ -88,3 +88,13 @@ def test_unrecognized_error_falls_back_to_generic_message():
     error = Exception("KeyError: 'unexpected_field'")
     message = friendly_agent_error(error)
     assert message == "Something went wrong while processing your request. Please try again in a moment."
+
+
+def test_model_did_not_call_a_tool_gets_clear_resume_message():
+    msg = friendly_agent_error(Exception("Error code: 400 - Tool choice is required, but model did not call a tool (tool_use_failed)"))
+    assert "couldn't find resume details" in msg
+
+
+def test_malformed_tool_call_gets_trouble_reading_message():
+    msg = friendly_agent_error(Exception("Error code: 400 - Failed to parse tool call arguments as JSON (tool_use_failed)"))
+    assert "trouble reading" in msg

@@ -64,6 +64,10 @@ Rules:
 """
 
 
+# Total tries when the model's output can't be parsed into a CandidateProfile.
+PARSE_ATTEMPTS = 3
+
+
 def analyze_resume(resume_text: str) -> CandidateProfile:
     """
     Sends resume text to the Groq LLM and returns a structured CandidateProfile.
@@ -73,8 +77,13 @@ def analyze_resume(resume_text: str) -> CandidateProfile:
         ("system", system_prompt),
         ("human", f"Resume text:\n\n{resume_text}"),
     ]
-    result = structured_llm.invoke(messages)
-    log_usage("Resume Analyzer Agent", result["raw"])
+    # The model occasionally returns output that doesn't fit the schema; a fresh attempt
+    # nearly always succeeds, so retry before giving up.
+    for _ in range(PARSE_ATTEMPTS):
+        result = structured_llm.invoke(messages)
+        log_usage("Resume Analyzer Agent", result["raw"])
+        if result["parsed"] is not None:
+            break
 
     if result["parsed"] is None:
         raise ValueError(f"Could not parse resume into a profile: {result.get('parsing_error')}")

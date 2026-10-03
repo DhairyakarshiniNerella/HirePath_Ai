@@ -26,7 +26,13 @@ def _is_malformed_tool_call_error(error: Exception) -> bool:
     return "tool_use_failed" in text or "failed to parse tool call" in text
 
 
-# Total tries per client when the model emits a malformed tool call.
+def _is_transient_network_error(error: Exception) -> bool:
+    # A brief network blip or timeout talking to Groq; the next attempt usually goes through.
+    text = str(error).lower()
+    return "connection error" in text or "timed out" in text or "timeout" in text
+
+
+# Total tries per client for transient failures (malformed tool call, brief network blip).
 MALFORMED_CALL_ATTEMPTS = 3
 
 
@@ -52,7 +58,8 @@ class StructuredLLMWithFallback:
             try:
                 return client.invoke(messages)
             except Exception as e:
-                if _is_malformed_tool_call_error(e) and attempt < MALFORMED_CALL_ATTEMPTS:
+                retryable = _is_malformed_tool_call_error(e) or _is_transient_network_error(e)
+                if retryable and attempt < MALFORMED_CALL_ATTEMPTS:
                     continue
                 raise
 

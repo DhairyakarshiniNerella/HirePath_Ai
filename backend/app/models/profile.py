@@ -1,8 +1,23 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
-class ProjectEntry(BaseModel):
+class NullTolerantModel(BaseModel):
+    """
+    LLMs often emit null for fields they have nothing for (e.g. "end": null for a
+    current job), which fails validation on non-Optional fields and aborts the whole
+    resume analysis. Dropping null values lets each field fall back to its default.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_nulls(cls, data):
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if v is not None}
+        return data
+
+
+class ProjectEntry(NullTolerantModel):
     """
     One project from the candidate's resume, split into a short name and a
     separate description - so the frontend can highlight the name distinctly
@@ -16,7 +31,7 @@ class ProjectEntry(BaseModel):
     )
 
 
-class EmploymentPeriod(BaseModel):
+class EmploymentPeriod(NullTolerantModel):
     """One FULL-TIME job's dates. Used to compute experience deterministically."""
 
     role: str = Field(default="", description="Job title exactly as written, e.g. 'Programmer/Analyst - II'")
@@ -24,7 +39,7 @@ class EmploymentPeriod(BaseModel):
     end: str = Field(default="", description="End month as YYYY-MM, or empty if the role is current (Present)")
 
 
-class CandidateProfile(BaseModel):
+class CandidateProfile(NullTolerantModel):
     """
     Structured information extracted from a candidate's resume.
     The Resume Analyzer Agent will fill this in using the Groq LLM.

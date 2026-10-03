@@ -18,6 +18,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Only these file extensions are allowed
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
 
+# Resumes with fewer words than this are rejected before any LLM call
+MIN_RESUME_WORDS = 20
+
 
 def is_allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -54,6 +57,11 @@ def upload_resume():
     extraction_result = extract_resume_text(save_path)
     if not extraction_result["success"]:
         return {"error": extraction_result["error"]}, 400
+
+    # A real resume has far more than a few words; failing here is instant, whereas
+    # sending near-empty text to the LLM wastes retries and ends in a vague error.
+    if len(extraction_result["text"].split()) < MIN_RESUME_WORDS:
+        return {"error": "This file has very little readable text. Please upload a text-based PDF or DOCX of your resume."}, 400
 
     # --- Step 3: Run the full multi-agent LangGraph workflow ---
     reset_usage()  # start counting tokens fresh for this run

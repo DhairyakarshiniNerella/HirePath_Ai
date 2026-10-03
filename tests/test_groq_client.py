@@ -86,3 +86,68 @@ def test_single_client_behaves_like_before_no_fallback_configured():
 def test_requires_at_least_one_client():
     with pytest.raises(ValueError):
         StructuredLLMWithFallback([])
+
+
+# ---------- malformed tool-call retry ----------
+
+MALFORMED = "Error code: 400 - {'error': {'code': 'tool_use_failed', 'message': 'Failed to parse tool call arguments as JSON'}}"
+
+
+def test_retries_same_client_on_malformed_tool_call_then_succeeds():
+    calls = {"n": 0}
+
+    def flaky(messages):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise Exception(MALFORMED)
+        return {"parsed": "ok"}
+
+    client = make_client(flaky)
+    assert StructuredLLMWithFallback([client]).invoke(["m"]) == {"parsed": "ok"}
+    assert client.call_count == 3
+
+
+def test_gives_up_after_max_malformed_attempts():
+    from app.services.groq_client import MALFORMED_CALL_ATTEMPTS
+
+    def always(messages):
+        raise Exception(MALFORMED)
+
+    client = make_client(always)
+    with pytest.raises(Exception, match="tool_use_failed"):
+        StructuredLLMWithFallback([client]).invoke(["m"])
+    assert client.call_count == MALFORMED_CALL_ATTEMPTS
+
+
+def test_other_errors_are_not_retried():
+    def boom(messages):
+        raise Exception("Error code: 500 - server exploded")
+
+    client = make_client(boom)
+    with pytest.raises(Exception, match="server exploded"):
+        StructuredLLMWithFallback([client]).invoke(["m"])
+    assert client.call_count == 1
+
+
+def test_rate_limit_still_falls_back_after_malformed_retries():
+    def primary(messages):
+        raise Exception("Error code: 429 - rate_limit_exceeded")
+
+    p = make_client(primary)
+    f = make_client(lambda messages: {"parsed": "fallback"})
+    assert StructuredLLMWithFallback([p, f]).invoke(["m"]) == {"parsed": "fallback"}
+    assert p.call_count == 1  # rate limits are not retried on the same key
+
+
+def test_retries_brief_connection_error_then_succeeds():
+    calls = {"n": 0}
+
+    def blip(messages):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise Exception("Connection error.")
+        return {"parsed": "ok"}
+
+    client = make_client(blip)
+    assert StructuredLLMWithFallback([client]).invoke(["m"]) == {"parsed": "ok"}
+    assert client.call_count == 2

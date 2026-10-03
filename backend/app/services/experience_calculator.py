@@ -71,6 +71,8 @@ _INTERN_RE = re.compile(
     r"\b(?:intern(?:s|ship|ships)?|trainee(?:s|ship)?|apprentice(?:s|ship)?)\b", re.IGNORECASE
 )
 _BULLET_RE = re.compile(r"^\s*[•▪●◦*\-–—]\s")
+# A line holding a year plus a range separator is another entry's (or the education's) date line.
+_DATE_LINE_RE = re.compile(r"\b(?:19|20)\d{2}\b.*?(?:-|–|—|\bto\b)", re.IGNORECASE)
 _HEADER_LINES_ABOVE = 3  # heading, job title and company can each sit on their own line
 
 
@@ -88,13 +90,14 @@ def _start_date_pattern(year: int, month: int) -> "re.Pattern":
 def _entry_header(resume_text: str, match: "re.Match") -> str:
     """
     The header of the experience entry whose date range was matched: the date line plus up to
-    a few lines above it, stopping at a bullet so the previous entry's text never leaks in.
+    a few lines above it, stopping at a bullet or at the previous entry's date line so the
+    previous entry's text never leaks in.
     """
     lines_before = resume_text[: match.start()].split("\n")
     date_line = lines_before.pop() + resume_text[match.start():].split("\n", 1)[0]
     header = [date_line]
     for line in reversed(lines_before):
-        if _BULLET_RE.match(line):
+        if _BULLET_RE.match(line) or _DATE_LINE_RE.search(line):
             break
         header.append(line)
         if len(header) > _HEADER_LINES_ABOVE:
